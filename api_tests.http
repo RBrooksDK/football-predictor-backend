@@ -1,0 +1,34 @@
+### Register a new user - SUCCESS CASE
+POST http://127.0.0.1:5001/api/register
+Content-Type: application/json
+
+{
+    "username": "testuser1",
+    "password": "password123"
+}
+
+### Register the same user again - FAIL CASE (Username exists)
+POST http://127.0.0.1:5001/api/register
+Content-Type: application/json
+
+{
+    "username": "testuser1",
+    "password": "anotherpassword"
+}
+
+### Register a new user - MISSING PASSWORD
+POST http://127.0.0.1:5001/api/register
+Content-Type: application/json
+
+{
+    "username": "testuser2"
+}
+
+### Register a new user - SHORT PASSWORD
+POST http://127.0.0.1:5001/api/register
+Content-Type: application/json
+
+{
+    "username": "testuser3",
+    "password": "123"
+}

@@ -1,5 +1,5 @@
 import os
-from flask import Flask, jsonify # Keep jsonify
+from flask import Flask, jsonify, request # Keep jsonify
 from flask_sqlalchemy import SQLAlchemy # <-- ADDED IMPORT
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -48,7 +48,40 @@ def index():
 def hello_api():
     return jsonify(greeting="Hello from the API!", status="success")
 
-# TODO: Add /api/register and /api/login routes
+# NEW REGISTRATION ROUTE
+@app.route('/api/register', methods=['POST'])
+def register_user():
+    data = request.get_json() # Get JSON data from the request body
+
+    if not data:
+        return jsonify(message="No input data provided"), 400
+
+    username = data.get('username')
+    password = data.get('password')
+
+    if not username or not password:
+        return jsonify(message="Username and password are required"), 400
+
+    if len(password) < 6: # Example: basic password length validation
+        return jsonify(message="Password must be at least 6 characters long"), 400
+
+    # Check if user already exists
+    if User.query.filter_by(username=username).first():
+        return jsonify(message="Username already exists"), 409 # 409 Conflict
+
+    # Create new user
+    new_user = User(username=username)
+    new_user.set_password(password) # Hashes the password
+
+    try:
+        db.session.add(new_user)
+        db.session.commit()
+        return jsonify(message="User registered successfully", user_id=new_user.id), 201 # 201 Created
+    except Exception as e:
+        db.session.rollback() # Rollback in case of error
+        # Log the error for debugging (in a real app, use proper logging)
+        print(f"Error during registration: {e}")
+        return jsonify(message="An error occurred during registration. Please try again."), 500
 
 # --- Helper function to create database tables ---
 def create_db_tables(): # <-- ADDED helper function
