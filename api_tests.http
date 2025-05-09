@@ -1,4 +1,4 @@
-### Login user - SUCCESS CASE (assuming 'testuser1' with 'password123' exists)
+### Login user - SUCCESS CASE (Get JWT)
 POST http://127.0.0.1:5001/api/login
 Content-Type: application/json
 
@@ -24,3 +24,15 @@ Content-Type: application/json
     "username": "nonexistentuser",
     "password": "password123"
 }
+
+### Access protected route - WITHOUT TOKEN (Should fail)
+GET http://127.0.0.1:5001/api/protected
+
+### Access protected route - WITH VALID TOKEN
+# Replace YOUR_ACCESS_TOKEN_HERE with the actual token you copied from the login response
+GET http://127.0.0.1:5001/api/protected
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTc0NjgwMDc4MCwianRpIjoiZDM1ZGJkMWEtODA0OS00ZDAwLWExNjgtMGVkZGZhYTBlNTJmIiwidHlwZSI6ImFjY2VzcyIsInN1YiI6IjEiLCJuYmYiOjE3NDY4MDA3ODAsImNzcmYiOiI0OTFjMTllMC0xNzgzLTQ0OWEtYWYzYS00NzY0NTdhMDBjNjYiLCJleHAiOjE3NDY4MDE2ODB9.HW2eT4OXNBArpM-UvROsD1Kr9jypnHxvRfiA-Qc6t-Y
+
+### Access protected route - WITH INVALID/EXPIRED TOKEN (Example)
+GET http://127.0.0.1:5001/api/protected
+Authorization: Bearer anobviouslyinvalidtoken123.xyz
