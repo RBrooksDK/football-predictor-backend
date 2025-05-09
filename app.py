@@ -83,6 +83,31 @@ def register_user():
         print(f"Error during registration: {e}")
         return jsonify(message="An error occurred during registration. Please try again."), 500
 
+# NEW LOGIN ROUTE
+@app.route('/api/login', methods=['POST'])
+def login_user():
+    data = request.get_json()
+
+    if not data:
+        return jsonify(message="No input data provided"), 400
+
+    username = data.get('username')
+    password = data.get('password')
+
+    if not username or not password:
+        return jsonify(message="Username and password are required"), 400
+
+    # Find user by username
+    user = User.query.filter_by(username=username).first()
+
+    if user and user.check_password(password):
+        # Login successful
+        # TODO: In a real app, generate and return an authentication token (e.g., JWT) here
+        return jsonify(message="Login successful", user_id=user.id, username=user.username), 200
+    else:
+        # Invalid credentials
+        return jsonify(message="Invalid username or password"), 401 # 401 Unauthorized
+
 # --- Helper function to create database tables ---
 def create_db_tables(): # <-- ADDED helper function
     # Ensure the instance folder exists
