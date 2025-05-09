@@ -43,8 +43,65 @@ class User(db.Model):
 
     def __repr__(self):
         return f'<User {self.username}>'
+        # Add a relationship to predictions (optional but good for easy access)
+        predictions = db.relationship('Prediction', backref='user', lazy=True)
 
-# TODO: Add other models later: League, Team, Prediction, ActualStanding, UserScore
+
+# NEW League Model
+class League(db.Model):
+    __tablename__ = 'leagues'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), unique=True, nullable=False) # e.g., "Premier League"
+    api_league_id = db.Column(db.String(20), unique=True, nullable=True) # Optional: To store ID from external football API
+    # Add a relationship to predictions
+    predictions = db.relationship('Prediction', backref='league', lazy=True)
+
+    def __repr__(self):
+        return f'<League {self.name}>'
+
+# NEW Team Model (Simplified - we might just use names or IDs from an API initially)
+# For now, let's assume we might want to store teams if we don't rely solely on API names
+# Or, we can skip this model for now and embed team_name directly in Prediction if simpler
+class Team(db.Model):
+    __tablename__ = 'teams'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    # Optional: Link to a league if teams are very specific and not shared (unlikely for top leagues)
+    # league_id = db.Column(db.Integer, db.ForeignKey('leagues.id'), nullable=True)
+    api_team_id = db.Column(db.String(20), unique=True, nullable=True) # Optional: To store ID from external football API
+    # Add a relationship to predictions
+    predictions = db.relationship('Prediction', backref='team', lazy=True)
+
+    # To make team names unique per league (if you add league_id)
+    # db.UniqueConstraint('name', 'league_id', name='uq_team_name_league')
+
+    def __repr__(self):
+        return f'<Team {self.name}>'
+
+# NEW Prediction Model
+class Prediction(db.Model):
+    __tablename__ = 'predictions'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    league_id = db.Column(db.Integer, db.ForeignKey('leagues.id'), nullable=False)
+    # If not using a separate Team model and just storing team names:
+    # team_name = db.Column(db.String(100), nullable=False)
+    # If using a Team model:
+    team_id = db.Column(db.Integer, db.ForeignKey('teams.id'), nullable=False)
+    predicted_rank = db.Column(db.Integer, nullable=False) # e.g., 1 for 1st, 2 for 2nd
+
+    # Ensure a user can only predict a team once per league for a given rank,
+    # or a team once per league, or a rank once per league.
+    # This depends on your exact rules. A simple one:
+    db.UniqueConstraint('user_id', 'league_id', 'team_id', name='uq_user_league_team_prediction')
+    db.UniqueConstraint('user_id', 'league_id', 'predicted_rank', name='uq_user_league_rank_prediction')
+
+
+    def __repr__(self):
+        return f'<Prediction UserID:{self.user_id} LeagueID:{self.league_id} TeamID:{self.team_id} Rank:{self.predicted_rank}>'
+
+
+# TODO: Add ActualStanding, UserScore models later
 
 # --- API Routes ---
 @app.route('/')
