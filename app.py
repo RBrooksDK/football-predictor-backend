@@ -1,36 +1,71 @@
 import os
-from flask import Flask, jsonify # Import jsonify
+from flask import Flask, jsonify # Keep jsonify
+from flask_sqlalchemy import SQLAlchemy # <-- ADDED IMPORT
 from flask_cors import CORS
 from dotenv import load_dotenv
+from werkzeug.security import generate_password_hash, check_password_hash # <-- ADDED IMPORT for password hashing
 
-# Load environment variables from .env file (if it exists)
-# We'll create .env later for API keys etc.
 load_dotenv()
-
-# Initialize the Flask application
 app = Flask(__name__)
-
-# Enable CORS for all routes and all origins by default for development.
-# For production, you might want to restrict origins.
 CORS(app)
 
-# A simple configuration for now (can be expanded later)
-# Example: Secret key for session management (though we aren't using sessions yet)
+# --- Database Configuration ---
+# Determine the base directory of the Flask application
+basedir = os.path.abspath(os.path.dirname(__file__)) # <-- ADDED: Gets the directory where app.py is located
+# Configure the SQLAlchemy database URI for SQLite
+# It will create a file named 'predictions.db' in an 'instance' folder
+# The 'instance' folder is a good place for instance-specific files not in version control.
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'instance', 'predictions.db') # <-- MODIFIED/ADDED
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False # Optional: Disables a feature that signals application on every change in the database
 app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY', 'a_super_secret_default_key_for_dev')
 
+db = SQLAlchemy(app) # <-- ADDED: Initialize SQLAlchemy with the Flask app
+
+# --- Database Models ---
+class User(db.Model): # <-- ADDED User Model
+    __tablename__ = 'users' # Optional: Explicitly names the table 'users'
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password_hash = db.Column(db.String(200), nullable=False) # Increased length for longer hashes
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+    def __repr__(self): # Optional: A nice representation for debugging
+        return f'<User {self.username}>'
+
+# TODO: Add other models later: League, Team, Prediction, ActualStanding, UserScore
+
 # --- API Routes ---
-
-@app.route('/') # This is the root route for basic testing
+@app.route('/')
 def index():
-    return jsonify(message="Welcome to the Football Predictor API! Version 1.0")
+    return jsonify(message="Welcome to the Football Predictor API! DB Setup in progress.")
 
-@app.route('/api/hello') # A sample API endpoint
+@app.route('/api/hello')
 def hello_api():
     return jsonify(greeting="Hello from the API!", status="success")
 
+# TODO: Add /api/register and /api/login routes
+
+# --- Helper function to create database tables ---
+def create_db_tables(): # <-- ADDED helper function
+    # Ensure the instance folder exists
+    instance_folder_path = os.path.join(basedir, 'instance')
+    if not os.path.exists(instance_folder_path):
+        os.makedirs(instance_folder_path)
+        print(f"Created instance folder at {instance_folder_path}")
+
+    with app.app_context(): # Creates an application context for db operations
+        db.create_all() # Creates database tables for all models defined
+    print("Database tables created (if they didn't exist).")
+
 # --- Main execution block ---
 if __name__ == '__main__':
-    # debug=True enables auto-reloading when code changes and provides helpful error messages.
-    # port=5001 to avoid conflict if your frontend dev server uses port 5000.
-    # host='0.0.0.0' makes the server accessible from other devices on your network (optional for now).
+    # Call the function to create tables before running the app
+    # This is okay for development. For production, you'd typically use migrations (e.g., Flask-Migrate).
+    create_db_tables() # <-- ADDED call to create tables
+
     app.run(debug=True, port=5001)
